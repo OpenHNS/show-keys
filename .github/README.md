@@ -1,5 +1,9 @@
 # show-keys
-Show keys and Spec keys for Hide'n'Seek/Kreedz Counter-Strike 1.6
+Показывает в DHUD зажатые клавишы игрока и движение мыши.
+Плагин предназначен для HNS мода в игре Counter-strike 1.6
+
+Shows in DHUD the player's pressed keys and mouse movement.
+The plugin is designed for the HNS mod in the game Counter-strike 1.6
 
 ## Требования / Requirements
 | Название | Версия |
