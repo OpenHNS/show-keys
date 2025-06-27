@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    paths-ignore:
+      - "**.md"
+      - "**.spr"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set $SHORT_SHA
+        run: echo "SHORT_SHA=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_ENV
+
+      - name: Setup AMXXPawn Compiler
+        uses: wopox1337/setup-amxxpawn@master
+        with:
+          version: '1.9.x'
+
+      - name: Setup latest ReAPI includes
+        env:
+          REPO: "rehlds/reapi"
+        run: |
+          mkdir -p dep/reapi
+          cd dep/reapi
+
+          curl \
+            --silent \
+            https://api.github.com/repos/$REPO/releases/latest | \
+            grep "browser_download_url" | \
+            grep -Eo 'https://[^\"]*' | \
+            xargs wget
+
+          7z x *.zip
+
+          echo "REAPI_INCLUDE_PATH=$(pwd)/addons/amxmodx/scripting/include" >> $GITHUB_ENV
+
+      - name: Compile plugins
+        working-directory: scripting/
+        env:
+          REAPI_INCLUDE: ${{ env.REAPI_INCLUDE_PATH }}
+        run: |
+          compile() {
+            sourcefile=$1
+            amxxfile="$(echo $sourcefile | sed -e 's/\.sma$/.amxx/')"
+            output_path="../plugins/$amxxfile"
+
+            mkdir -p $(dirname $output_path)
+
+            echo -n "Compiling $sourcefile ... "
+            amxxpc "$sourcefile" -o"$output_path" -i"include" -i"$REAPI_INCLUDE" && echo "Done"
+          }
+          export -f compile
+
+          find . -type f -name "*.sma" -exec bash -c 'compile "$0"' {} \;
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShowKeys-${{ env.SHORT_SHA }}
+          path: ./
+          compression-level: 9
